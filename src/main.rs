@@ -1,6 +1,7 @@
 use std::io::{self, Write};
 mod math;
 use math::Math;
+mod functions;
 
 fn main() {
     loop {
