@@ -1,3 +1,4 @@
+use crate::functions::basic;
 use std::collections::HashMap;
 
 #[derive(Debug)]
@@ -32,6 +33,8 @@ impl Math {
     pub fn evaluate(&mut self) {
         self.split_into_tokens();
         self.convert_to_reverse_polish_notation();
+        self.solve_reverse_polish_notation();
+        println!("{:?}", self.reverse_polish_notation);
     }
 
     fn split_into_tokens(&mut self) {
@@ -91,5 +94,26 @@ impl Math {
             queue.push(stack.pop().unwrap());
         }
         self.reverse_polish_notation = queue.clone();
+    }
+    fn solve_reverse_polish_notation(&mut self) {
+        let mut stack: Vec<f64> = Vec::new();
+        for token in self.reverse_polish_notation.iter() {
+            if token.parse::<f64>().is_ok() {
+                stack.push(token.parse::<f64>().unwrap());
+            } else if is_operator(token) {
+                let a = stack.pop().unwrap();
+                let b = stack.pop().unwrap();
+                match token.as_str() {
+                    "+" => stack.push(basic::add(a, b)),
+                    "-" => stack.push(basic::subtract(b, a)),
+                    "*" => stack.push(basic::multiply(a, b)),
+                    "/" => stack.push(basic::divide(b, a)),
+                    "^" => stack.push(basic::power(b, a)),
+                    "%" => stack.push(basic::modulus(b, a)),
+                    _ => panic!("Invalid operator: {}", token),
+                }
+            }
+        }
+        println!("{}", stack.pop().unwrap());
     }
 }
