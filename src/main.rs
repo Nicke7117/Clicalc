@@ -11,7 +11,11 @@ fn main() {
         io::stdin()
             .read_line(&mut input)
             .expect("Error reading from STDIN");
-        let mut math = Math::new(input.trim().to_string());
-        math.evaluate();
+        if input.trim().is_empty() {
+            println!("Invalid expression");
+        } else {
+            let mut math = Math::new(input.trim().to_string());
+            math.evaluate();
+        }
     }
 }

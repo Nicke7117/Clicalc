@@ -10,15 +10,8 @@ pub struct Math {
 
 fn is_operator(token: &str) -> bool {
     match token {
-        "+" => true,
-        "-" => true,
-        "*" => true,
-        "/" => true,
-        "^" => true,
-        "%" => true,
-        "(" => true,
-        ")" => true,
-        _ => panic!("Invalid operator: {}", token),
+        "+" | "-" | "*" | "/" | "^" | "%" | "(" | ")" => true,
+        _ => false,
     }
 }
 
@@ -31,13 +24,20 @@ impl Math {
         }
     }
     pub fn evaluate(&mut self) {
-        self.split_into_tokens();
+        //call the split_into_tokens method and if it returns an error, print the error and return
+        if let Err(e) = self.split_into_tokens() {
+            println!("{}", e);
+            return;
+        }
         self.convert_to_reverse_polish_notation();
-        self.solve_reverse_polish_notation();
+        if let Err(e) = self.solve_reverse_polish_notation() {
+            println!("{}", e);
+            return;
+        }
         println!("{:?}", self.reverse_polish_notation);
     }
 
-    fn split_into_tokens(&mut self) {
+    fn split_into_tokens(&mut self) -> Result<(), String> {
         let mut token = String::new();
         for (i, c) in self.expression.chars().enumerate() {
             if c.is_numeric() {
@@ -56,8 +56,11 @@ impl Math {
                     token.clear();
                 }
                 self.tokens.push(c.to_string());
+            } else {
+                return Err(format!("Invalid character {}", c));
             }
         }
+        Ok(())
     }
     fn convert_to_reverse_polish_notation(&mut self) {
         let mut queue: Vec<String> = Vec::new();
@@ -95,14 +98,17 @@ impl Math {
         }
         self.reverse_polish_notation = queue.clone();
     }
-    fn solve_reverse_polish_notation(&mut self) {
+    fn solve_reverse_polish_notation(&mut self) -> Result<(), String> {
         let mut stack: Vec<f64> = Vec::new();
         for token in self.reverse_polish_notation.iter() {
             if token.parse::<f64>().is_ok() {
                 stack.push(token.parse::<f64>().unwrap());
-            } else if is_operator(token) {
+            } else if stack.len() >= 2 {
+                println!("Stack: {:?}", stack);
                 let a = stack.pop().unwrap();
+                println!("a: {}", a);
                 let b = stack.pop().unwrap();
+                println!("b: {}", b);
                 match token.as_str() {
                     "+" => stack.push(basic::add(a, b)),
                     "-" => stack.push(basic::subtract(b, a)),
@@ -110,10 +116,13 @@ impl Math {
                     "/" => stack.push(basic::divide(b, a)),
                     "^" => stack.push(basic::power(b, a)),
                     "%" => stack.push(basic::modulus(b, a)),
-                    _ => panic!("Invalid operator: {}", token),
+                    _ => return Err(format!("Invalid operator {}", token)),
                 }
+            } else {
+                return Err(format!("Invalid expression"));
             }
         }
         println!("{}", stack.pop().unwrap());
+        Ok(())
     }
 }
