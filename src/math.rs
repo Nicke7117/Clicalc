@@ -1,4 +1,5 @@
 use crate::functions::basic;
+use regex::Regex;
 use std::collections::HashMap;
 
 #[derive(Debug)]
@@ -15,6 +16,13 @@ fn is_operator(token: &str) -> bool {
     }
 }
 
+fn is_function(token: &str) -> bool {
+    match token {
+        "sin" | "cos" | "tan" | "log" | "ln" | "sqrt" | "abs" | "floor" | "ceil" | "round" => true,
+        _ => false,
+    }
+}
+
 impl Math {
     pub fn new(expression: String) -> Math {
         Math {
@@ -24,7 +32,6 @@ impl Math {
         }
     }
     pub fn evaluate(&mut self) {
-        //call the split_into_tokens method and if it returns an error, print the error and return
         if let Err(e) = self.split_into_tokens() {
             println!("{}", e);
             return;
@@ -34,39 +41,49 @@ impl Math {
             println!("{}", e);
             return;
         }
-        println!("{:?}", self.reverse_polish_notation);
     }
 
     fn split_into_tokens(&mut self) -> Result<(), String> {
-        let mut token = String::new();
-        for (i, c) in self.expression.chars().enumerate() {
-            if c.is_numeric() {
-                token.push(c);
-                if i == self.expression.len() - 1 {
-                    self.tokens.push(token.clone());
+        let mut current_token = String::new();
+        for token in self.expression.chars() {
+            if token.is_whitespace() {
+                continue;
+            } else if is_operator(token.to_string().as_str()) {
+                if current_token.len() > 0 {
+                    self.tokens.push(current_token);
+                    current_token = String::new();
                 }
-            } else if c.is_whitespace() {
-                if !token.is_empty() {
-                    self.tokens.push(token.clone());
-                    token.clear();
-                }
-            } else if is_operator(c.to_string().as_str()) {
-                if !token.is_empty() {
-                    self.tokens.push(token.clone());
-                    token.clear();
-                }
-                self.tokens.push(c.to_string());
+                self.tokens.push(token.to_string());
             } else {
-                return Err(format!("Invalid character {}", c));
+                current_token.push(token);
             }
+        }
+        if current_token.len() > 0 {
+            self.tokens.push(current_token);
         }
         Ok(())
     }
     fn convert_to_reverse_polish_notation(&mut self) {
         let mut queue: Vec<String> = Vec::new();
         let mut stack: Vec<String> = Vec::new();
-        let precedence =
-            HashMap::from([("+", 1), ("-", 1), ("*", 2), ("/", 2), ("^", 3), ("%", 3)]);
+        let precedence = HashMap::from([
+            ("+", 1),
+            ("-", 1),
+            ("*", 2),
+            ("/", 2),
+            ("^", 3),
+            ("%", 3),
+            ("sin", 1),
+            ("cos", 1),
+            ("tan", 1),
+            ("log", 1),
+            ("ln", 1),
+            ("sqrt", 1),
+            ("abs", 1),
+            ("floor", 1),
+            ("ceil", 1),
+            ("round", 1),
+        ]);
         for token in self.tokens.iter() {
             if token.parse::<f64>().is_ok() {
                 queue.push(token.to_string())
@@ -80,7 +97,9 @@ impl Math {
                         queue.push(popped)
                     }
                 }
-            } else if is_operator(token) {
+            } else if is_function(token) {
+                stack.push(token.to_string())
+            } else {
                 while !stack.is_empty()
                     && stack.last().unwrap() != "("
                     && precedence.get(&*String::from(token)).unwrap()
@@ -100,29 +119,35 @@ impl Math {
     }
     fn solve_reverse_polish_notation(&mut self) -> Result<(), String> {
         let mut stack: Vec<f64> = Vec::new();
-        for token in self.reverse_polish_notation.iter() {
+        for (i, token) in self.reverse_polish_notation.iter().enumerate() {
             if token.parse::<f64>().is_ok() {
                 stack.push(token.parse::<f64>().unwrap());
-            } else if stack.len() >= 2 {
-                println!("Stack: {:?}", stack);
+            } else if is_operator(token) {
                 let a = stack.pop().unwrap();
-                println!("a: {}", a);
                 let b = stack.pop().unwrap();
-                println!("b: {}", b);
                 match token.as_str() {
                     "+" => stack.push(basic::add(a, b)),
                     "-" => stack.push(basic::subtract(b, a)),
                     "*" => stack.push(basic::multiply(a, b)),
-                    "/" => stack.push(basic::divide(b, a)),
+                    "/" => stack.push(basic::divide(b, a)?),
                     "^" => stack.push(basic::power(b, a)),
                     "%" => stack.push(basic::modulus(b, a)),
                     _ => return Err(format!("Invalid operator {}", token)),
+                }
+            } else if is_function(token) {
+                let a = stack.pop().unwrap();
+
+                match token.as_str() {
+                    "sin" => stack.push(basic::sine(a)),
+                    "cos" => stack.push(basic::cosine(a)),
+                    "tan" => stack.push(basic::tangent(a)),
+                    _ => return Err(format!("Invalid function {}", token)),
                 }
             } else {
                 return Err(format!("Invalid expression"));
             }
         }
-        println!("{}", stack.pop().unwrap());
+        println!("Result: {}", stack.pop().unwrap());
         Ok(())
     }
 }
