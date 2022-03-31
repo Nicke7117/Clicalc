@@ -1,5 +1,4 @@
 use crate::functions::basic;
-use regex::Regex;
 use std::collections::HashMap;
 
 #[derive(Debug)]
@@ -119,7 +118,7 @@ impl Math {
     }
     fn solve_reverse_polish_notation(&mut self) -> Result<(), String> {
         let mut stack: Vec<f64> = Vec::new();
-        for (i, token) in self.reverse_polish_notation.iter().enumerate() {
+        for token in self.reverse_polish_notation.iter() {
             if token.parse::<f64>().is_ok() {
                 stack.push(token.parse::<f64>().unwrap());
             } else if is_operator(token) {
@@ -141,6 +140,13 @@ impl Math {
                     "sin" => stack.push(basic::sine(a)),
                     "cos" => stack.push(basic::cosine(a)),
                     "tan" => stack.push(basic::tangent(a)),
+                    "ln" => stack.push(basic::ln(a)),
+                    "lg" => stack.push(basic::lg(a)),
+                    "ceil" => stack.push(basic::ceil(a)),
+                    "floor" => stack.push(basic::floor(a)),
+                    "abs" => stack.push(basic::abs(a)),
+                    "round" => stack.push(basic::round(a)),
+                    "sqrt" => stack.push(basic::sqrt(a)),
                     _ => return Err(format!("Invalid function {}", token)),
                 }
             } else {
