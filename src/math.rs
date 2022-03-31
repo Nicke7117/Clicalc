@@ -22,6 +22,13 @@ fn is_function(token: &str) -> bool {
     }
 }
 
+fn is_constant(token: &str) -> bool {
+    match token {
+        "pi" | "e" => true,
+        _ => false,
+    }
+}
+
 impl Math {
     pub fn new(expression: String) -> Math {
         Math {
@@ -86,6 +93,12 @@ impl Math {
         for token in self.tokens.iter() {
             if token.parse::<f64>().is_ok() {
                 queue.push(token.to_string())
+            } else if is_constant(token.as_str()) {
+                match token.as_str() {
+                    "pi" => queue.push(std::f64::consts::PI.to_string()),
+                    "e" => queue.push(std::f64::consts::E.to_string()),
+                    _ => (),
+                }
             } else if token == "(" {
                 stack.push(token.to_string())
             } else if token == ")" {
