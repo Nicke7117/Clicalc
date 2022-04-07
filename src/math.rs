@@ -29,6 +29,25 @@ fn is_constant(token: &str) -> bool {
     }
 }
 
+trait CheckAndPush {
+    fn check_and_push(&mut self, token: &str) -> Result<(), String>;
+}
+
+impl CheckAndPush for Vec<String> {
+    fn check_and_push(&mut self, token: &str) -> Result<(), String> {
+        if is_function(token)
+            || is_operator(token)
+            || is_constant(token)
+            || token.parse::<f64>().is_ok()
+        {
+            self.push(token.to_string());
+            Ok(())
+        } else {
+            Err(format!("{} is not a valid token", token))
+        }
+    }
+}
+
 impl Math {
     pub fn new(expression: String) -> Math {
         Math {
@@ -45,7 +64,6 @@ impl Math {
         self.convert_to_reverse_polish_notation();
         if let Err(e) = self.solve_reverse_polish_notation() {
             println!("{}", e);
-            return;
         }
     }
 
@@ -54,18 +72,20 @@ impl Math {
         for token in self.expression.chars() {
             if token.is_whitespace() {
                 continue;
-            } else if is_operator(token.to_string().as_str()) {
-                if current_token.len() > 0 {
-                    self.tokens.push(current_token);
+            } else if is_operator(token.to_string().as_str()) || is_constant(current_token.as_str())
+            {
+                if !current_token.is_empty() {
+                    self.tokens.check_and_push(current_token.as_str())?;
                     current_token = String::new();
                 }
-                self.tokens.push(token.to_string());
+
+                self.tokens.check_and_push(token.to_string().as_str())?;
             } else {
                 current_token.push(token);
             }
         }
-        if current_token.len() > 0 {
-            self.tokens.push(current_token);
+        if !current_token.is_empty() {
+            self.tokens.check_and_push(current_token.as_str())?;
         }
         Ok(())
     }
@@ -104,6 +124,9 @@ impl Math {
             } else if token == ")" {
                 while let Some(popped) = stack.pop() {
                     if popped == "(" {
+                        if !stack.is_empty() && is_function(stack.last().unwrap()) {
+                            queue.push(stack.pop().unwrap());
+                        }
                         break;
                     } else {
                         queue.push(popped)
@@ -134,7 +157,7 @@ impl Math {
         for token in self.reverse_polish_notation.iter() {
             if token.parse::<f64>().is_ok() {
                 stack.push(token.parse::<f64>().unwrap());
-            } else if is_operator(token) {
+            } else if is_operator(token) && stack.len() >= 2 {
                 let a = stack.pop().unwrap();
                 let b = stack.pop().unwrap();
                 match token.as_str() {
@@ -144,11 +167,10 @@ impl Math {
                     "/" => stack.push(basic::divide(b, a)?),
                     "^" => stack.push(basic::power(b, a)),
                     "%" => stack.push(basic::modulus(b, a)),
-                    _ => return Err(format!("Invalid operator {}", token)),
+                    _ => (),
                 }
-            } else if is_function(token) {
+            } else if is_function(token) && !stack.is_empty() {
                 let a = stack.pop().unwrap();
-
                 match token.as_str() {
                     "sin" => stack.push(basic::sine(a)),
                     "cos" => stack.push(basic::cosine(a)),
@@ -160,10 +182,10 @@ impl Math {
                     "abs" => stack.push(basic::abs(a)),
                     "round" => stack.push(basic::round(a)),
                     "sqrt" => stack.push(basic::sqrt(a)),
-                    _ => return Err(format!("Invalid function {}", token)),
+                    _ => (),
                 }
             } else {
-                return Err(format!("Invalid expression"));
+                return Err("Invalid expression".to_string());
             }
         }
         println!("Result: {}", stack.pop().unwrap());
